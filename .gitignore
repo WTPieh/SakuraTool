@@ -1,1 +1,51 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.npm/
+
+# Build outputs
+dist/
+build/
+extension.zip
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
 

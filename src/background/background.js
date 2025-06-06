@@ -27,11 +27,51 @@
 /// <reference path="typedef.js" />
 const dynamicReferencePattern = /\$\w\d*|\$\d+\w*/g;
 const dynamicValuePattern = /\w\d*:\$?\d*\w*:/g;
-chrome.action.onClicked.addListener(async (tab) => {
-  const url = tab.url;
-  if (url.hostname === "www.sakura.fm" && url.pathname.startsWith("/chat/")) {
+const __DOMAIN__ = /^https:\/\/www\.sakura\.fm\/chat\/[a-zA-Z0-9]+$/;
+
+// Listen for messages from popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Background received message:', message);
+  if (message.type === 'download') {
+    console.log('Processing download request for tab:', message.tabId);
+    handleDownload(message.tabId, message.url);
+  }
+});
+
+async function handleDownload(tabId, url) {
+  console.log('Starting download process for URL:', url);
+  try {
+    if (!url) {
+      console.error('No URL provided');
+      throw new Error('No URL provided');
+    }
+
+    const cleanUrl = url.split("?")[0];
+    console.log('Cleaned URL:', cleanUrl);
+    console.log('Testing URL against pattern:', __DOMAIN__);
+    console.log('Pattern test result:', __DOMAIN__.test(cleanUrl));
+    
+    if (!__DOMAIN__.test(cleanUrl)) {
+      console.log('URL does not match domain pattern');
+      // Send error message to popup
+      chrome.runtime.sendMessage({
+        type: 'status',
+        status: 'error',
+        message: chrome.i18n.getMessage('wrongPageMessage')
+      });
+      return;
+    }
+
+    console.log('URL matches domain pattern, fetching character data');
     // The URL matches the intended domain and path, proceed with the functionality
-    const data = await fetchAndCopyCharacterData(url);
+    const data = await fetchAndCopyCharacterData(cleanUrl);
+    if (!data) {
+      console.error('Failed to fetch character data');
+      throw new Error('Failed to fetch character data');
+    }
+    
+    console.log('Character data fetched successfully:', data.name);
+    
     let messages = "";
     let isEmpty =
       data.exampleConversation[0].content === "" &&
@@ -68,14 +108,16 @@ chrome.action.onClicked.addListener(async (tab) => {
       },
     };
 
+    console.log('Injecting download script into tab:', tabId);
     // Inject the download function and run it in the context of the tab
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
+    await chrome.scripting.executeScript({
+      target: { tabId },
       func: (character) => {
         /** @type {CharacterSakura} jsonObject*/
         const downloadJsonData = (
           /** @type {CharacterSakura} jsonObject*/ jsonObject,
         ) => {
+          console.log('Starting download in content script');
           // Convert JSON object to a string
           const jsonString = JSON.stringify(jsonObject, null, 2);
 
@@ -102,16 +144,37 @@ chrome.action.onClicked.addListener(async (tab) => {
 
           // Revoke the Blob URL to free up memory
           URL.revokeObjectURL(link.href);
+          console.log('Download completed in content script');
         };
 
         downloadJsonData(character);
       },
       args: [character],
     });
-  } else {
-    console.warn(
-      "This script is not running on the Sakura page with /chat/ in the URL",
-    );
+
+    console.log('Sending success message to popup');
+    // Send success message to popup
+    chrome.runtime.sendMessage({
+      type: 'status',
+      status: 'success',
+      message: chrome.i18n.getMessage('successMessage', [character.name])
+    });
+  } catch (error) {
+    console.error('Error in handleDownload:', error);
+    // Send error message to popup
+    chrome.runtime.sendMessage({
+      type: 'status',
+      status: 'error',
+      message: chrome.i18n.getMessage('errorMessage')
+    });
+  }
+}
+
+// Keep the action click handler for backward compatibility
+chrome.action.onClicked.addListener((tab) => {
+  console.log('Action clicked for tab:', tab);
+  if (tab && tab.url) {
+    handleDownload(tab.id, tab.url);
   }
 });
 
@@ -121,6 +184,8 @@ async function fetchAndCopyCharacterData(weburl) {
     const url = weburl.split("?")[0];
 
     const response = await fetch(url, {
+      method: "GET",
+      credentials: "omit",
       headers: {
         accept: "*/*",
         rsc: "1",
@@ -145,11 +210,6 @@ async function fetchAndCopyCharacterData(weburl) {
       let firstMessage = retrieveData(textResponse, dataObject.firstMessage);
       dataObject.firstMessage = firstMessage;
     }
-    console.error(dataObject.description);
-    console.error(
-      "This evaluates to true:",
-      dynamicReferencePattern.test(dataObject.description),
-    );
     if (dynamicReferencePattern.test(dataObject.description)) {
       let description = retrieveData(textResponse, dataObject.description);
       dataObject.description = description;
@@ -160,7 +220,7 @@ async function fetchAndCopyCharacterData(weburl) {
     }
     return dataObject;
   } catch (error) {
-    console.error("Error fetching character data:", error);
+    console.warn("Error fetching character data:", error);
     return null;
   }
 }
@@ -169,7 +229,7 @@ function primaryData(dataObject) {
   const dataIndex = dataObject.indexOf('{"success":true,"data"');
 
   if (dataIndex === -1) {
-    console.log("Data object not found in the response.");
+    console.warn("Data object not found in the response.");
     return;
   }
 
@@ -190,12 +250,10 @@ function primaryData(dataObject) {
  */
 function personaData(dataObject, personaCharIndex) {
   const index = personaCharIndex.split("$")[1] + ":";
-  console.log(index);
   const personaIndex = dataObject.indexOf(index);
-  console.log(personaIndex);
 
   if (personaIndex === -1) {
-    console.log("Data object not found in the response.");
+    console.warn("Data object not found in the response.");
     return;
   }
 
@@ -211,12 +269,10 @@ function personaData(dataObject, personaCharIndex) {
  */
 function retrieveData(dataObject, charIndex) {
   const index = charIndex.split("$")[1] + ":";
-  console.log(index);
   const dataIndex = dataObject.indexOf(index);
-  console.log(dataIndex);
 
   if (dataIndex === -1) {
-    console.log("Data object not found in the response.");
+    console.warn("Data object not found in the response.");
     return;
   }
 
