@@ -6,8 +6,7 @@
   "default_locale": "en",
   "permissions": [
     "activeTab",
-    "scripting",
-    "storage"
+    "scripting"
   ],
   "action": {
     "default_popup": "popup.html",
