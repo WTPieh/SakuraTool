@@ -25,38 +25,35 @@ export default defineConfig({
         // Copy manifest.json from src
         fs.copyFileSync("src/manifest.json", "dist/manifest.json");
 
-        // Copy icons directory from src/assets/icons to dist/assets/icons
+        // Copy icons from src/assets/icons to dist/assets/icons
         if (fs.existsSync("src/assets/icons")) {
           fs.ensureDirSync("dist/assets/icons");
           fs.copySync("src/assets/icons", "dist/assets/icons", {
             overwrite: true,
           });
+          console.log("Copied icons to dist/assets/icons");
         } else {
           console.warn("src/assets/icons directory not found, skipping...");
         }
 
-        // Copy _locales directory
-        if (fs.existsSync("_locales")) {
-          fs.copySync("_locales", "dist/_locales", { overwrite: true });
+        // Copy _locales from src/_locales to dist/_locales
+        if (fs.existsSync("src/_locales")) {
+          fs.copySync("src/_locales", "dist/_locales", { overwrite: true });
+          console.log("Copied _locales to dist/_locales");
         } else {
-          console.warn("_locales directory not found, skipping...");
+          console.warn("src/_locales directory not found, skipping...");
         }
 
         // Copy utils/script.js to dist/utils/script.js
         if (fs.existsSync("src/utils/script.js")) {
           fs.ensureDirSync("dist/utils");
           fs.copyFileSync("src/utils/script.js", "dist/utils/script.js");
+          console.log("Copied utils/script.js to dist/utils");
         } else {
           console.warn("src/utils/script.js not found, skipping...");
         }
 
-        // Cleanup: Remove dist/src if it exists
-        if (fs.existsSync("dist/src")) {
-          fs.removeSync("dist/src");
-          console.log("Removed dist/src directory");
-        }
-
-        console.log("Copied manifest, icons, locales, and utils to dist.");
+        console.log("Build complete! Extension ready in dist/");
       },
     },
   ],
@@ -65,7 +62,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, "src/popup.html"),
-        background: resolve(__dirname, "src/background/background.js"),
+        background: resolve(__dirname, "src/background.js"),
       },
       output: {
         entryFileNames: "[name].js",
@@ -80,7 +77,6 @@ export default defineConfig({
       "@components": resolve(__dirname, "src/components"),
       "@utils": resolve(__dirname, "src/utils"),
       "@types": resolve(__dirname, "src/types"),
-      "@styles": resolve(__dirname, "src/styles"),
       "@assets": resolve(__dirname, "src/assets"),
     },
   },
