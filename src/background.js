@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-/// <reference path="typedef.js" />
+/// <reference path="../types/typedef.js" />
 const dynamicReferencePattern = /\$\w\d*|\$\d+\w*/g;
 const dynamicValuePattern = /\w\d*:\$?\d*\w*:/g;
 const __DOMAIN__ = /^https:\/\/www\.sakura\.fm\/chat\/[a-zA-Z0-9]+$/;
@@ -230,16 +230,53 @@ function primaryData(dataObject) {
 
   if (dataIndex === -1) {
     console.warn("Data object not found in the response.");
-    return;
+    return null;  // Return null instead of undefined
   }
 
-  const dataEndIndex = dataObject.indexOf(":false}}", dataIndex) + 8;
+  // Instead of looking for ":false}}", properly parse the JSON
+  // Find the complete JSON object by counting braces
+  let braceCount = 0;
+  let inString = false;
+  let escapeNext = false;
+  let dataEndIndex = -1;
+  
+  for (let i = dataIndex; i < dataObject.length; i++) {
+    const char = dataObject[i];
+    
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    
+    if (char === '\\') {
+      escapeNext = true;
+      continue;
+    }
+    
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    
+    if (!inString) {
+      if (char === '{') braceCount++;
+      if (char === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          dataEndIndex = i + 1;
+          break;
+        }
+      }
+    }
+  }
+  
+  if (dataEndIndex === -1) {
+    console.warn("Could not find end of JSON object");
+    return null;
+  }
+
   let data = dataObject.substring(dataIndex, dataEndIndex);
-
-  // Extract and parse the "data" object.
   const primaryData = JSON.parse(data).data;
-
-  /** @type {CharacterSakura} */
   const character = primaryData.character;
   return character;
 }
