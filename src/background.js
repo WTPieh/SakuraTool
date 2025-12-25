@@ -4,7 +4,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 William Pieh and PiehSoft LLC
+ * Copyright (c) 2026 William Pieh and PiehSoft LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-/// <reference path="../types/typedef.js" />
+/// <reference path="./types/typedef.js" />
 const dynamicReferencePattern = /\$\w\d*|\$\d+\w*/g;
 const dynamicValuePattern = /\w\d*:\$?\d*\w*:/g;
 const __DOMAIN__ = /^https:\/\/www\.sakura\.fm\/chat\/[a-zA-Z0-9]+$/;
@@ -102,7 +102,7 @@ async function handleDownload(tabId, url) {
         source: null,
         tool: {
           name: "SakuraTool",
-          version: "1.0.0",
+          version: "1.1.1",
           url: "https://github.com/WTPieh/SakuraTool",
         },
       },
